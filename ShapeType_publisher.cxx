@@ -43,6 +43,33 @@ add and remove them dynamically from the domain.
 #include "ShapeTypeSupport.h"
 #include "ndds/ndds_cpp.h"
 
+class ShapeTypeExtendedListener : public DDSDataWriterListener {
+public:
+	virtual void on_offered_deadline_missed(DDSDataWriter* writer,
+		const DDS_OfferedDeadlineMissedStatus& status) {}
+
+	virtual void on_liveliness_lost(DDSDataWriter* writer,
+		const DDS_LivelinessLostStatus& status) {}
+
+	virtual void on_offered_incompatible_qos(DDSDataWriter* writer,
+		const DDS_OfferedIncompatibleQosStatus& status) {}
+
+	virtual void on_publication_matched(DDSDataWriter* writer,
+		const DDS_PublicationMatchedStatus& status);
+
+	virtual void on_reliable_writer_cache_changed(DDSDataWriter* writer,
+		const DDS_ReliableWriterCacheChangedStatus& status) {}
+
+	virtual void on_reliable_reader_activity_changed(DDSDataWriter* writer,
+		const DDS_ReliableReaderActivityChangedStatus& status) {}
+};
+
+void ShapeTypeExtendedListener::on_publication_matched(DDSDataWriter* writer,
+	const DDS_PublicationMatchedStatus& status)
+{
+	printf("Subscription Match Occurred.\n");
+}
+
 /* Delete all entities */
 static int publisher_shutdown(
     DDSDomainParticipant *participant)
@@ -95,6 +122,7 @@ extern "C" int publisher_main(int domainId, int sample_count)
 	const char *type_name = NULL;
     int count = 0;  
     DDS_Duration_t send_period = {0, 1000000000/16};
+	ShapeTypeExtendedListener *writer_listener = NULL;
 
     /* To customize participant QoS, use 
     the configuration file USER_QOS_PROFILES.xml */
@@ -139,11 +167,14 @@ extern "C" int publisher_main(int domainId, int sample_count)
         return -1;
     }
 
-    /* To customize data writer QoS, use 
+	/* Create a data writer listener */
+	writer_listener = new ShapeTypeExtendedListener();
+
+	/* To customize data writer QoS, use
     the configuration file USER_QOS_PROFILES.xml */
     writer = publisher->create_datawriter(
-        topic, DDS_DATAWRITER_QOS_DEFAULT, NULL /* listener */,
-        DDS_STATUS_MASK_NONE);
+        topic, DDS_DATAWRITER_QOS_DEFAULT, writer_listener,
+        DDS_STATUS_MASK_ALL);
     if (writer == NULL) {
         fprintf(stderr, "create_datawriter error\n");
         publisher_shutdown(participant);
@@ -156,7 +187,7 @@ extern "C" int publisher_main(int domainId, int sample_count)
         return -1;
     }
 
-    /* Create first keyed data sample for writing */
+	/* Create first keyed data sample for writing */
     instanceA = ShapeTypeExtendedTypeSupport::create_data();
     if (instanceA == NULL) {
         fprintf(stderr, "ShapeTypeExtendedTypeSupport::create_data error\n");

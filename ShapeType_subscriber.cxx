@@ -89,11 +89,11 @@ void ShapeTypeExtendedListener::on_data_available(DDSDataReader* reader)
         data_seq, info_seq, DDS_LENGTH_UNLIMITED,
         DDS_ANY_SAMPLE_STATE, DDS_ANY_VIEW_STATE, DDS_ANY_INSTANCE_STATE);
 
-    if (retcode == DDS_RETCODE_NO_DATA) {
+    returnif (retcode == DDS_RETCODE_NO_DATA) {
         return;
     } else if (retcode != DDS_RETCODE_OK) {
         fprintf(stderr, "take error %d\n", retcode);
-        return;
+        ;
     }
 
     for (i = 0; i < data_seq.length(); ++i) {
